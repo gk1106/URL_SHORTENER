@@ -1,0 +1,8 @@
+package com.URL.Shortner.Service;
+
+public interface URLService {
+
+    public String generateShortUrl(String longUrl);
+
+
+}
