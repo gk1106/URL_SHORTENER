@@ -1,11 +1,15 @@
 <section class="glass create-card" aria-labelledby="create-heading">
   <div class="create-heading"><span class="icon-tile"><app-icon name="link" /></span><h2 id="create-heading">Create a short link</h2></div>
+  @if (!auth.authenticated() && guests.allowance(); as allowance) {
+    <p class="input-hint" role="status">{{ allowance.remaining }} of {{ allowance.limit }} free links remaining in this browser. Sign in or sign up after 30 links.</p>
+  }
+  @if (guests.error()) { <div class="error-panel" role="alert"><p>{{ guests.error() }}</p><button type="button" class="btn btn-secondary" (click)="guests.retry()">Retry</button></div> }
   <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
     <label for="destination" class="field-label">Destination URL</label>
     <div class="url-input-wrap">
       <app-icon name="globe" />
       <input id="destination" type="url" formControlName="longUrl" placeholder="https://example.com/your-page" autocomplete="url" [attr.aria-invalid]="form.controls.longUrl.touched && form.controls.longUrl.invalid" aria-describedby="destination-help" />
-      <button class="btn btn-primary" type="submit" [disabled]="busy() || auth.state() === 'loading'"><span>{{ busy() ? 'Creating...' : auth.authenticated() ? 'Shorten link' : 'Sign in to shorten' }}</span><app-icon [name]="busy() ? 'clock' : 'arrow'" /></button>
+      <button class="btn btn-primary" type="submit" [disabled]="busy() || !guests.ready()"><span>{{ busy() ? 'Creating...' : !auth.authenticated() && guests.allowance()?.remaining === 0 ? 'Sign in to continue' : 'Shorten link' }}</span><app-icon [name]="busy() ? 'clock' : 'arrow'" /></button>
     </div>
     <p id="destination-help" class="input-hint" [class.field-error]="form.controls.longUrl.touched && form.controls.longUrl.invalid">@if (form.controls.longUrl.touched && form.controls.longUrl.invalid) { Enter a full http:// or https:// URL without credentials, up to 2,048 characters. } @else { Use a full http:// or https:// URL. }</p>
     <button type="button" class="advanced-toggle" (click)="advanced.set(!advanced())" [attr.aria-expanded]="advanced()" aria-controls="advanced-options"><app-icon name="settings" /> Custom alias & expiration <app-icon name="down" [class.rotate-180]="advanced()" /><span>Optional</span></button>

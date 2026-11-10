@@ -3,6 +3,7 @@ import { DatePipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
+import { GuestService } from '../../../../core/guest/guest.service';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { ApiError, normalizeError } from '../../../../core/errors/api-error';
 import { IconComponent } from '../../../../shared/icons/icon.component';
@@ -17,6 +18,7 @@ import { LinksApiService } from '../../services/links-api.service';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class DashboardComponent {
+  readonly guests = inject(GuestService);
   readonly auth = inject(AuthService);
   private readonly api = inject(LinksApiService);
   private readonly toast = inject(ToastService);
@@ -52,13 +54,13 @@ export class DashboardComponent {
 
   constructor() {
     effect(() => {
-      if (this.auth.authenticated()) this.load(0);
+      if (this.guests.ready()) this.load(0);
       else { this.generation++; this.statsGeneration++; this.page.set(null); this.stats.set(new Map()); this.selected.set(null); this.loading.set(false); }
     }, { allowSignalWrites: true });
   }
 
   load(page = this.page()?.page ?? 0): void {
-    if (!this.auth.authenticated()) return;
+    if (!this.guests.ready()) return;
     const generation = ++this.generation;
     this.loading.set(true); this.error.set(null);
     this.api.list(page).pipe(takeUntilDestroyed(this.destroyRef), finalize(() => { if (generation === this.generation) this.loading.set(false); })).subscribe({
@@ -74,7 +76,7 @@ export class DashboardComponent {
   }
 
   toggle(link: ShortLink): void {
-    if (this.busyIds().has(link.id) || linkStatus(link) === 'expired') return;
+    if (!this.auth.authenticated() || this.busyIds().has(link.id) || linkStatus(link) === 'expired') return;
     this.setBusy(link.id, true);
     this.api.update(link.id, { active: !link.active }).pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.setBusy(link.id, false))).subscribe({
       next: updated => {
@@ -87,6 +89,7 @@ export class DashboardComponent {
   }
 
   openStats(link: ShortLink): void {
+    if (!this.auth.authenticated()) return;
     this.selected.set(link); this.refreshStats(link);
   }
 

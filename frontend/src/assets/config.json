@@ -1,4 +1,9 @@
 {
   "apiBaseUrl": "/api/v1",
-  "oidc": { "url": "http://localhost:8180", "realm": "shortener", "clientId": "shortener-dev" }
+  "oidc": {
+    "url": "http://localhost:8180",
+    "realm": "shortener",
+    "clientId": "shortener-dev"
+  },
+  "registrationEnabled": true
 }

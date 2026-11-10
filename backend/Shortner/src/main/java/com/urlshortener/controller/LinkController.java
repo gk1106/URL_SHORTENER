@@ -6,6 +6,8 @@ import com.urlshortener.dto.LinkStatsResponse;
 import com.urlshortener.dto.PageResponse;
 import com.urlshortener.dto.UpdateLinkRequest;
 import com.urlshortener.service.LinkService;
+import com.urlshortener.service.GuestService;
+import org.springframework.web.bind.annotation.CookieValue;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -26,16 +28,21 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/urls")
 public class LinkController {
   private final LinkService service;
+  private final GuestService guests;
 
-  public LinkController(LinkService service) {
+  public LinkController(LinkService service, GuestService guests) {
     this.service = service;
+    this.guests = guests;
   }
 
   @PostMapping
   public ResponseEntity<LinkResponse> create(
-      @Valid @RequestBody CreateLinkRequest request, @AuthenticationPrincipal Jwt jwt) {
-    LinkResponse response = service.create(request, jwt.getSubject());
-    return ResponseEntity.created(URI.create("/api/v1/urls/" + response.id())).body(response);
+      @Valid @RequestBody CreateLinkRequest request, @AuthenticationPrincipal Jwt jwt,
+      @CookieValue(name=GuestController.COOKIE, required=false) String token) {
+    LinkResponse response = service.create(request, jwt == null ? guests.owner(token) : jwt.getSubject());
+    var builder = ResponseEntity.created(URI.create("/api/v1/urls/" + response.id()));
+    if (jwt == null) builder.header("X-Guest-Remaining", String.valueOf(guests.allowance(token).remaining()));
+    return builder.body(response);
   }
 
   @GetMapping

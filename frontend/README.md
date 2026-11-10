@@ -1,4 +1,4 @@
-# Shortly frontend
+# GK GO frontend
 
 Angular 17.3 standalone application with Tailwind CSS 3.4, a Retro-Futuristic interface, typed reactive forms, signals, lazy routes, and Keycloak authorization code flow with PKCE.
 
@@ -8,15 +8,17 @@ The UI follows the project [frontend-design skill](../.agents/skills/frontend-de
 
 ## Run locally
 
+Public signup is available through **Sign up**. Registration verifies the user's email before password setup and authenticated link creation. Local emails are captured at http://localhost:8025; password reset is available on the Keycloak sign-in page. See [server setup](../SERVER_SETUP.md) to configure real email delivery and the public hostname. Runtime `registrationEnabled` controls whether the signup action is shown.
+
 ```powershell
 cd frontend
 npm ci
 npm start
 ```
 
-Open **http://localhost:5173**. Use `localhost`, rather than `127.0.0.1`, to match the configured Keycloak redirects. Node 20.19.0 is provided as a checkout-local development dependency; npm scripts use it without changing the machine's Node installation. `.nvmrc` also records the supported Node version.
+Open **http://localhost:5173**. Local Keycloak redirects support both `localhost` and `127.0.0.1` on ports 4200 and 5173. `npm start` uses port 5173; `npx ng serve` uses Angular's default port 4200. Node 20.19.0 is provided as a checkout-local development dependency; npm scripts use it without changing the machine's Node installation. `.nvmrc` also records the supported Node version.
 
-Start Keycloak from the repository root with `docker compose up -d keycloak`. Sign in to its admin console at http://localhost:8180, select the `shortener` realm, and create an application user with a permanent password if one does not exist. The Angular application sends users to Keycloak to sign in and does not collect their passwords. The existing `shortener-dev` client already allows `http://localhost:5173/*` and PKCE S256.
+For the complete Docker stack, run `./scripts/start-local.ps1` from the repository root. It waits for service readiness and prepares the local application account. Use the `shortly-local` credentials from the ignored `.local/login.json` file. For an existing Keycloak instance, `node scripts/setup-local-auth.mjs --create-user` synchronizes the local client and creates the account without resetting existing passwords. The Angular application sends users to Keycloak to sign in and does not collect their passwords. The `shortener-dev` client allows `http://localhost:5173/*`, PKCE S256, and redirects back to the app after logout.
 
 Start the backend on port 8090, or point the Angular development proxy to your backend:
 
@@ -84,6 +86,8 @@ npm test
 npm run build
 ```
 
+With the complete local stack running, install the isolated test browser with `npx playwright install chromium`, then run `npm run test:e2e`. The browser suite exercises actual Keycloak sign-in/logout, reload/session recovery, link management, and ownership checks. It creates and deletes disposable local test accounts, pauses its test links, and does not save authentication traces or videos. It also captures signed-out desktop/mobile screenshots under ignored `test-results/`.
+
 The production build is emitted under `dist/shortly/browser`. Tests cover request validation, link status, configuration boundaries, safe errors, token scoping, session expiration, and non-retry behaviour for writes.
 
 ## Docker
@@ -91,3 +95,5 @@ The production build is emitted under `dist/shortly/browser`. Tests cover reques
 From the repository root, `docker compose --profile full up --build -d` includes the frontend at http://localhost:5173. Its Nginx container proxies `/api` to the backend on the private Docker network and runs without root. The container generates public runtime configuration with `jq` from `API_BASE_URL`, `OIDC_URL`, `OIDC_REALM`, and `OIDC_CLIENT_ID`. Production must use HTTPS and deployment-specific identity-provider redirects/origins.
 
 Angular 17 is retained as requested. It is listed under [unsupported Angular versions](https://angular.dev/reference/versions); its Node compatibility is Node 18/20. An upgrade to a supported Angular/Node release is required for an ongoing production security maintenance baseline. Do not treat framework-version pinning as a security guarantee. Tailwind setup follows the [official Angular guide](https://v3.tailwindcss.com/docs/guides/angular), and authentication uses the [official Keycloak adapter](https://www.keycloak.org/securing-apps/javascript-adapter).
+
+Anonymous browsers receive 30 successful link creations before sign-in is required. The backend stores and enforces this allowance; the form displays the remaining count. Guest links are transferred into the account at sign-in. Browser-cookie deletion or another browser starts a new allowance; IP rate limiting remains active.

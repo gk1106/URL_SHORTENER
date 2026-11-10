@@ -15,6 +15,8 @@ export function normalizeError(error: unknown): ApiError {
   const body: unknown = error.error;
   const problem = typeof body === 'object' && body !== null ? body as Record<string, unknown> : {};
   const requestId = typeof problem['requestId'] === 'string' ? problem['requestId'] : error.headers.get('X-Request-ID') ?? undefined;
+  if (problem['code'] === 'GUEST_LIMIT_REACHED') return new ApiError(
+    'You have used your 30 free links. Sign in or sign up to continue.', 401, requestId);
   const messages: Record<number, string> = {
     0: 'We could not reach the server. Check your connection and try again.',
     400: 'Check the URL, alias, and expiration date, then try again.',

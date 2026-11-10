@@ -34,15 +34,18 @@ def call(method, url, data=None, token=None, form=False):
 def main():
     env = dict(line.split('=', 1) for line in Path('.env').read_text().splitlines() if line and not line.startswith('#'))
     oidc = 'http://localhost:8180'
-    api = 'http://localhost:' + env.get('APP_PORT', '8090')
+    api = 'http://127.0.0.1:' + env.get('APP_PORT', '8090')
     status, _, _ = call('GET', api + '/actuator/health')
     assert status == 200, f'Backend health failed: {status}'
-    status, _, result = call('POST', oidc + '/realms/master/protocol/openid-connect/token', {
-        'client_id': 'admin-cli', 'grant_type': 'password', 'username': 'admin',
-        'password': env['KEYCLOAK_ADMIN_PASSWORD'],
-    }, form=True)
-    assert status == 200, f'Admin authentication failed: {status}'
-    admin = result['access_token']
+    def admin_token():
+        status, _, result = call('POST', oidc + '/realms/master/protocol/openid-connect/token', {
+            'client_id': 'admin-cli', 'grant_type': 'password', 'username': 'admin',
+            'password': env['KEYCLOAK_ADMIN_PASSWORD'],
+        }, form=True)
+        assert status == 200, f'Admin authentication failed: {status}'
+        return result['access_token']
+
+    admin = admin_token()
     admin_url = oidc + '/admin/realms/shortener/clients'
     created = []
     link = None
@@ -91,6 +94,7 @@ def main():
         assert status == 429, 'Distributed rate limiting did not enforce quota'
         print('PASS: Oracle persistence, real Keycloak JWTs, ownership, Redis lookup, redirects, HEAD, click counts, disable, rate limits.')
     finally:
+        admin = admin_token()
         for location in created:
             status, _, _ = call('DELETE', location, token=admin)
             if status != 204:

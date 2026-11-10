@@ -1,7 +1,7 @@
 <a class="skip-link" href="#main-content">Skip to content</a>
 <div class="app-shell">
   <header class="topbar" data-enter>
-    <a routerLink="/" class="brand" aria-label="Shortly home"><span class="brand-symbol"><app-icon name="link" /></span>shortly<span class="brand-period">.</span></a>
+    <a routerLink="/" class="brand" aria-label="GK GO home"><span class="brand-symbol"><app-icon name="link" /></span>GK GO<span class="brand-period">.</span></a>
     <nav class="desktop-nav" aria-label="Main navigation">
       <a routerLink="/" routerLinkActive="nav-active" [routerLinkActiveOptions]="{ exact: true }">My links</a>
       <a routerLink="/insights" routerLinkActive="nav-active">Insights</a>
@@ -12,6 +12,9 @@
         <a routerLink="/settings" class="user-avatar" [attr.aria-label]="'Account: ' + auth.displayName()" [title]="auth.displayName()">{{ auth.initials() }}</a>
         <button class="icon-button" type="button" aria-label="Sign out" title="Sign out" [disabled]="authBusy()" (click)="signOut()"><app-icon name="logout" /></button>
       } @else {
+        @if (auth.registrationEnabled) {
+          <button class="btn btn-primary" type="button" [disabled]="authBusy() || auth.state() === 'loading'" (click)="signUp()">Sign up</button>
+        }
         <button class="btn btn-secondary" type="button" [disabled]="authBusy() || auth.state() === 'loading'" (click)="signIn()">{{ auth.state() === 'loading' ? 'Connecting...' : authBusy() ? 'Opening sign-in...' : 'Sign in' }}<app-icon name="arrow" /></button>
       }
       <a routerLink="/settings" class="icon-button settings-button" aria-label="Settings"><app-icon name="settings" /></a>
@@ -30,7 +33,7 @@
     <div class="connection-banner" role="status"><app-icon name="info" /><span>Sign-in is unavailable. Reconnect to try again.</span><button class="text-button" type="button" (click)="auth.retry()">Reconnect</button></div>
   }
   <main id="main-content" class="workspace-main" tabindex="-1"><router-outlet /></main>
-  <footer class="workspace-footer"><a routerLink="/" class="footer-brand">shortly.</a><span>&copy; {{ currentYear }} Shortly</span><a routerLink="/guide">Help & getting started<app-icon name="arrowUp" /></a></footer>
+  <footer class="workspace-footer"><a routerLink="/" class="footer-brand">GK GO</a><span>&copy; {{ currentYear }} GK GO</span><a routerLink="/guide">Help & getting started<app-icon name="arrowUp" /></a></footer>
 </div>
 <div class="toast-stack" aria-live="polite" aria-atomic="false">
   @for (message of toast.messages(); track message.id) {

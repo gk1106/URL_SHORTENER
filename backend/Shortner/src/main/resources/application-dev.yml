@@ -8,8 +8,9 @@ spring:
     issuer-uri: http://localhost:8180/realms/shortener
     jwk-set-uri: http://localhost:8180/realms/shortener/protocol/openid-connect/certs
 app:
+  guest.cookie-secure: false
   base-url: http://localhost:8080
-  cors.allowed-origins: http://localhost:3000,http://localhost:5173
+  cors.allowed-origins: http://localhost:3000,http://localhost:4200,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:4200,http://127.0.0.1:5173
   cache.enabled: false
   rate-limit.enabled: false
 management.health.redis.enabled: false

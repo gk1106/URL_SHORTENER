@@ -8,8 +8,9 @@ import { AuthService } from '../auth/auth.service';
 import { apiInterceptor } from './api.interceptor';
 
 describe('API interceptor', () => {
-  const auth = { accessToken: vi.fn(), expireSession: vi.fn() };
+  const auth = { authenticated: vi.fn(() => true), accessToken: vi.fn(), expireSession: vi.fn() };
   beforeEach(() => {
+    auth.authenticated.mockReturnValue(true);
     auth.accessToken.mockReset().mockResolvedValue('test-access-token');
     auth.expireSession.mockReset();
     TestBed.configureTestingModule({ providers: [
@@ -25,6 +26,15 @@ describe('API interceptor', () => {
     expect(request.request.headers.get('Authorization')).toBe('Bearer test-access-token');
     request.flush({ content: [] }); await result;
     TestBed.inject(HttpTestingController).verify();
+  });
+  it('allows anonymous creation with the browser cookie without requesting a token', async () => {
+    auth.authenticated.mockReturnValue(false);
+    const result = firstValueFrom(TestBed.inject(HttpClient).post('/api/v1/urls', { longUrl: 'https://example.com' }));
+    const request = TestBed.inject(HttpTestingController).expectOne('/api/v1/urls');
+    expect(request.request.headers.has('Authorization')).toBe(false);
+    expect(request.request.withCredentials).toBe(true);
+    expect(auth.accessToken).not.toHaveBeenCalled();
+    request.flush({}); await result;
   });
   it('never sends tokens to unrelated origins', async () => {
     const result = firstValueFrom(TestBed.inject(HttpClient).get('https://other.test/api/v1/urls'));

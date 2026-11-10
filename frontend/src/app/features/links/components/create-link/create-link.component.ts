@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, DestroyRef, EventEmitter, Output, i
 import { ReactiveFormsModule, NonNullableFormBuilder, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
+import { GuestService } from '../../../../core/guest/guest.service';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { ApiError, normalizeError } from '../../../../core/errors/api-error';
 import { IconComponent } from '../../../../shared/icons/icon.component';
@@ -15,6 +16,7 @@ import { LinksApiService } from '../../services/links-api.service';
   templateUrl: './create-link.component.html', changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CreateLinkComponent {
+  readonly guests = inject(GuestService);
   readonly auth = inject(AuthService);
   private readonly api = inject(LinksApiService);
   private readonly toast = inject(ToastService);
@@ -32,8 +34,8 @@ export class CreateLinkComponent {
   });
 
   async submit(): Promise<void> {
-    if (this.busy() || this.auth.state() === 'loading') return;
-    if (!this.auth.authenticated()) {
+    if (this.busy() || !this.guests.ready()) return;
+    if (!this.auth.authenticated() && this.guests.allowance()?.remaining === 0) {
       try { await this.auth.login(); } catch (error) { this.error.set(normalizeError(error)); }
       return;
     }
@@ -48,7 +50,7 @@ export class CreateLinkComponent {
       ...(value.expiresAt ? { expiresAt: new Date(value.expiresAt).toISOString() } : {})
     }).pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.busy.set(false))).subscribe({
       next: link => { this.result.set(link); this.form.reset(); this.created.emit(link); this.toast.show('Your new link is ready to share.'); },
-      error: (error: unknown) => this.error.set(normalizeError(error))
+      error: (error: unknown) => { this.error.set(normalizeError(error)); if (!this.auth.authenticated()) this.guests.refresh(); }
     });
   }
 

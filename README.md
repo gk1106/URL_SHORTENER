@@ -1,4 +1,6 @@
-# URL Shortener
+# GK GO
+
+Guests can create their first 30 links per browser without an account. After that, sign in or register and verify your email to continue. Guest links transfer to the account after sign-in. Local verification/reset emails are captured at http://localhost:8025. See [server authentication setup](SERVER_SETUP.md) for `link.gkbuilds.in`, HTTPS routing, SMTP, and the separate server stack.
 
 Java 17 / Spring Boot 4.1.2 backend with Oracle, Flyway, Spring Security OIDC bearer authentication, Redis, Log4j2, and bounded asynchronous click counting. The [Angular 17 frontend](frontend/README.md) includes a glossy Tailwind CSS workspace, secure sign-in, link management, and click statistics.
 
@@ -69,13 +71,29 @@ Keycloak container usage follows the [official development container guide](http
 From the root, after configuring `.env`:
 
 ```powershell
-docker compose --profile full up --build -d
-docker compose --profile full logs -f backend
+./scripts/start-local.ps1
 ```
+
+This builds the containers, waits for the API, website, and identity provider, synchronizes the local PKCE/audience/logout configuration, and creates a `shortly-local` application account if needed. Open **http://localhost:5173** and use the generated credentials in **`.local/login.json`**. That file is ignored by Git; passwords and tokens are not printed. Existing account passwords are preserved. Node.js 20+ and Docker Desktop are required for this setup command. Use `./scripts/start-local.ps1 -SkipBuild` for an already-built stack.
+
+The lower-level equivalent is `docker compose --profile full up --build -d`, followed (once services are ready) by `node scripts/setup-local-auth.mjs --create-user`. The setup command also updates existing Keycloak volumes, because changing the realm import JSON alone does not update an already-imported realm. The generated account is for local application use and is not a Keycloak administrator.
 
 This starts Oracle Free, password-protected Redis, Keycloak, and the backend at http://localhost:8090 (`APP_PORT` in `.env` overrides the port). Use port 8090 instead of 8080 in the API examples for this stack. Oracle stays on the private Docker network. Oracle's first start can take several minutes. Volumes persist database/authentication data; later `.env` changes do not change existing database or Keycloak passwords. `docker compose --profile full down` stops the stack and retains data.
 
 Run `python scripts/smoke-stack.py` from the root to check the live stack. It creates and removes temporary Keycloak clients, creates one disabled test link, and checks authentication, ownership, redirects, click counts, cache consistency, and rate limits. It reads local `.env` credentials without printing them.
+
+Browser verification uses the real stack and disposable test accounts:
+
+```powershell
+cd frontend
+npm ci
+npx playwright install chromium
+npm run test:e2e
+```
+
+These tests cover real PKCE login, reload/session recovery, link creation and click recording, pause/resume, owner isolation, logout, invalid credentials, and desktop/mobile rendering. Test accounts are removed afterward; test links are paused. Browser traces, video, and automatic screenshots are disabled so authentication secrets are not retained. Signed-out layout screenshots contain no account data.
+
+Oracle's `NUMBER(1)` active flag is explicitly mapped through Hibernate's preferred Boolean JDBC type `BIT`, preserving the existing Flyway migration and avoiding Oracle 23's native-Boolean schema mismatch.
 
 ## API
 

@@ -17,6 +17,10 @@ public interface LinkRepository extends JpaRepository<ShortLink, String> {
   Page<ShortLink> findByOwnerId(String ownerId, Pageable pageable);
 
   @Modifying
+  @Query("update ShortLink l set l.ownerId = :account, l.version = l.version + 1 where l.ownerId = :guest")
+  int claimGuest(@Param("guest") String guest, @Param("account") String account);
+
+  @Modifying
   @Query("update ShortLink l set l.clickCount = l.clickCount + 1 where l.id = :id")
   int incrementClicks(@Param("id") String id);
 }

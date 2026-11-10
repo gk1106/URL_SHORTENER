@@ -2,6 +2,7 @@ import { InjectionToken } from '@angular/core';
 
 export interface AppConfig {
   readonly apiBaseUrl: string;
+  readonly registrationEnabled?: boolean;
   readonly oidc: { readonly url: string; readonly realm: string; readonly clientId: string };
 }
 
@@ -10,6 +11,7 @@ export const APP_CONFIG = new InjectionToken<AppConfig>('Application runtime con
 export function validateConfig(value: unknown): AppConfig {
   const config = value as Partial<AppConfig> | null;
   if (!config || typeof config.apiBaseUrl !== 'string' || !config.apiBaseUrl
+      || (config.registrationEnabled !== undefined && typeof config.registrationEnabled !== 'boolean')
       || !config.oidc || typeof config.oidc.url !== 'string'
       || typeof config.oidc.realm !== 'string' || !config.oidc.realm
       || typeof config.oidc.clientId !== 'string' || !config.oidc.clientId) {
@@ -25,7 +27,7 @@ export function validateConfig(value: unknown): AppConfig {
       throw new Error('Secure deployments require HTTPS service URLs.');
     }
   }
-  return { apiBaseUrl: config.apiBaseUrl.replace(/\/+$/, ''), oidc: config.oidc };
+  return { apiBaseUrl: config.apiBaseUrl.replace(/\/+$/, ''), oidc: config.oidc, registrationEnabled: config.registrationEnabled === true };
 }
 
 export function isApiUrl(url: string, base: string): boolean {

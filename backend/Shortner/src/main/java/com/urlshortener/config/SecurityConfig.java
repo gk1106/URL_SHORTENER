@@ -30,7 +30,7 @@ public class SecurityConfig {
       @Value("${app.rate-limit.redirect-per-minute:300}") int redirectLimit)
       throws Exception {
     return http
-        // Only Authorization bearer tokens are accepted; no cookie authentication.
+        // Accounts use bearer tokens; the guest cookie grants creation/listing only.
         .csrf(csrf -> csrf.disable())
         .cors(Customizer.withDefaults())
         .sessionManagement(
@@ -46,6 +46,8 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers(HttpMethod.GET, "/actuator/metrics", "/actuator/metrics/**")
                     .hasAuthority("SCOPE_metrics.read")
+                    .requestMatchers(HttpMethod.POST, "/api/v1/urls").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/v1/guest/session", "/api/v1/guest/links").permitAll()
                     .requestMatchers("/api/**")
                     .authenticated()
                     .anyRequest()
@@ -96,8 +98,8 @@ public class SecurityConfig {
     cors.setAllowedOrigins(origins);
     cors.setAllowedMethods(List.of("GET", "HEAD", "POST", "PATCH", "OPTIONS"));
     cors.setAllowedHeaders(List.of("Authorization", "Content-Type"));
-    cors.setExposedHeaders(List.of("Location", "X-Request-ID"));
-    cors.setAllowCredentials(false);
+    cors.setExposedHeaders(List.of("Location", "X-Request-ID", "X-Guest-Remaining"));
+    cors.setAllowCredentials(true);
     cors.setMaxAge(3600L);
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/api/**", cors);

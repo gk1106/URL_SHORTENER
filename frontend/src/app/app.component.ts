@@ -33,4 +33,12 @@ export class AppComponent {
     catch { this.toast.show('Sign-out could not be completed. Please try again.', 'error'); }
     finally { this.authBusy.set(false); }
   }
+
+  async signUp(): Promise<void> {
+    if (this.authBusy()) return;
+    this.authBusy.set(true);
+    try { await this.auth.register(); }
+    catch (error) { this.toast.show(normalizeError(error).message, 'error'); }
+    finally { this.authBusy.set(false); }
+  }
 }

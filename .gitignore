@@ -2,7 +2,10 @@
 .env
 .env.*
 !.env.example
+!.env.server.example
 **/*recovery-codes*.txt
 **/logs/
 .idea/
 *.iml
+.local/
+.local-stack-build.log

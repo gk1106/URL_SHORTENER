@@ -45,6 +45,40 @@ class LinkIntegrationTest {
   @MockitoBean JwtDecoder decoder;
 
   @Test
+  void guestAllowanceIsAtomicAndClaimedByAccount() throws Exception {
+    var session = mvc.perform(get("/api/v1/guest/session")).andExpect(status().isOk())
+        .andExpect(jsonPath("$.remaining").value(30)).andReturn();
+    String token = session.getResponse().getHeader("Set-Cookie").split(";", 2)[0].split("=", 2)[1];
+    var cookie = new jakarta.servlet.http.Cookie("gkgo_visitor", token);
+    mvc.perform(post("/api/v1/urls").cookie(cookie).contentType(MediaType.APPLICATION_JSON)
+        .content("{\"longUrl\":\"invalid\"}")).andExpect(status().isBadRequest());
+    var pool = Executors.newFixedThreadPool(8);
+    try {
+      List<Callable<Integer>> calls = new ArrayList<>();
+      for (int i = 0; i < 36; i++) calls.add(() -> mvc.perform(post("/api/v1/urls").cookie(cookie)
+          .contentType(MediaType.APPLICATION_JSON).content("{\"longUrl\":\"https://example.com/guest\"}"))
+          .andReturn().getResponse().getStatus());
+      var results = pool.invokeAll(calls);
+      long created = 0, denied = 0;
+      for (var result : results) { int code = result.get(); if (code == 201) created++; else if (code == 401) denied++; }
+      assertThat(created).isEqualTo(30); assertThat(denied).isEqualTo(6);
+    } finally { pool.shutdownNow(); }
+    mvc.perform(get("/api/v1/guest/session").cookie(cookie)).andExpect(jsonPath("$.remaining").value(0));
+    mvc.perform(post("/api/v1/urls").cookie(cookie).contentType(MediaType.APPLICATION_JSON)
+        .content("{\"longUrl\":\"https://example.com\"}")).andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.code").value("GUEST_LIMIT_REACHED"));
+    mvc.perform(get("/api/v1/urls").cookie(cookie)).andExpect(status().isUnauthorized());
+    mvc.perform(post("/api/v1/guest/claim").cookie(cookie).with(jwt().jwt(j -> j.subject("guest-claim-test"))))
+        .andExpect(status().isNoContent());
+    mvc.perform(get("/api/v1/urls").with(jwt().jwt(j -> j.subject("guest-claim-test"))))
+        .andExpect(jsonPath("$.totalElements").value(30));
+    mvc.perform(get("/api/v1/guest/links").cookie(cookie)).andExpect(jsonPath("$.totalElements").value(0));
+    mvc.perform(post("/api/v1/urls").cookie(cookie).with(jwt().jwt(j -> j.subject("guest-claim-test")))
+        .contentType(MediaType.APPLICATION_JSON).content("{\"longUrl\":\"https://example.com/account\"}"))
+        .andExpect(status().isCreated());
+  }
+
+  @Test
   void createsPersistsAndRedirects() throws Exception {
     mvc.perform(
             post("/api/v1/urls")

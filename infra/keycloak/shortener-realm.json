@@ -1,7 +1,7 @@
 {
   "realm": "shortener",
   "enabled": true,
-  "registrationAllowed": false,
+  "registrationAllowed": true,
   "bruteForceProtected": true,
   "sslRequired": "external",
   "clients": [
@@ -12,9 +12,24 @@
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": false,
-      "redirectUris": ["http://localhost:3000/*", "http://localhost:5173/*"],
-      "webOrigins": ["http://localhost:3000", "http://localhost:5173"],
+      "redirectUris": [
+        "http://localhost:3000/*",
+        "http://localhost:4200/*",
+        "http://localhost:5173/*",
+        "http://127.0.0.1:3000/*",
+        "http://127.0.0.1:4200/*",
+        "http://127.0.0.1:5173/*"
+      ],
+      "webOrigins": [
+        "http://localhost:3000",
+        "http://localhost:4200",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:4200",
+        "http://127.0.0.1:5173"
+      ],
       "attributes": {
+        "post.logout.redirect.uris": "+",
         "oauth2.device.authorization.grant.enabled": "true",
         "pkce.code.challenge.method": "S256"
       },
@@ -31,5 +46,20 @@
         }
       ]
     }
-  ]
+  ],
+  "displayName": "GK GO",
+  "verifyEmail": true,
+  "resetPasswordAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "loginTheme": "gk-go",
+  "passwordPolicy": "length(12) and notUsername and notEmail",
+  "smtpServer": {
+    "host": "mailpit",
+    "port": "1025",
+    "from": "accounts@gkgo.local",
+    "fromDisplayName": "GK GO",
+    "auth": "false",
+    "ssl": "false",
+    "starttls": "false"
+  }
 }

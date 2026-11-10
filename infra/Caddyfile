@@ -1,0 +1,26 @@
+{
+    email {$ACME_EMAIL}
+}
+
+{$PUBLIC_ORIGIN} {
+    encode zstd gzip
+    header {
+        Strict-Transport-Security "max-age=31536000"
+        X-Content-Type-Options nosniff
+        Referrer-Policy strict-origin-when-cross-origin
+    }
+
+    # Admin access is through server-side kcadm/SSH, not the public website.
+    @admin path /auth/admin* /auth/realms/master*
+    respond @admin 403
+    redir /auth /auth/ 308
+    handle /auth/* {
+        reverse_proxy keycloak:8080
+    }
+    handle /r/* {
+        reverse_proxy backend:8080
+    }
+    handle {
+        reverse_proxy frontend:8080
+    }
+}

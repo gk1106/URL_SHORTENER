@@ -12,6 +12,7 @@ export class AuthService {
   readonly state = signal<AuthState>('loading');
   readonly displayName = signal('Your workspace');
   readonly username = signal('');
+  readonly registrationEnabled = this.config.registrationEnabled === true;
   readonly authenticated = computed(() => this.state() === 'authenticated');
   readonly initials = computed(() => this.displayName().split(' ').slice(0, 2).map(word => word[0]).join('').toUpperCase());
 
@@ -28,10 +29,20 @@ export class AuthService {
   }
 
   async login(): Promise<void> {
-    if (this.state() === 'unavailable') await this.retry();
-    if (this.state() === 'unavailable') throw new Error('Sign-in is temporarily unavailable. Please try again.');
-    await this.initialize();
+    await this.ready();
     await this.client.login({ redirectUri: location.origin + location.pathname });
+  }
+
+  async register(): Promise<void> {
+    if (!this.registrationEnabled) throw new Error('Account registration is not enabled.');
+    await this.ready();
+    await this.client.register({ redirectUri: location.origin + location.pathname });
+  }
+
+  private async ready(): Promise<void> {
+    if (this.state() === 'unavailable') await this.retry();
+    await this.initialize();
+    if (this.state() === 'unavailable') throw new Error('Sign-in is temporarily unavailable. Please try again.');
   }
 
   async logout(): Promise<void> {
@@ -45,14 +56,15 @@ export class AuthService {
       if (!this.client.token) throw new Error('Missing token');
       return this.client.token;
     } catch {
-      this.client.clearToken();
-      this.state.set('anonymous');
+      this.expireSession();
       throw new Error('Your session has expired. Please sign in again.');
     }
   }
 
   expireSession(): void {
     this.client.clearToken();
+    this.displayName.set('Your workspace');
+    this.username.set('');
     this.state.set('anonymous');
   }
 
@@ -61,19 +73,32 @@ export class AuthService {
   }
 
   private async initializeClient(): Promise<void> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
     try {
-      const authenticated = await this.client.init({
+      const initialization = this.client.init({
         onLoad: 'check-sso', pkceMethod: 'S256', checkLoginIframe: false,
         silentCheckSsoRedirectUri: location.origin + '/assets/silent-check-sso.html',
         silentCheckSsoFallback: false, responseMode: 'query', messageReceiveTimeout: 6000
       });
+      const authenticated = await Promise.race([
+        initialization,
+        new Promise<never>((_resolve, reject) => {
+          timer = setTimeout(() => reject(new Error('Sign-in initialization timed out')), 15000);
+        })
+      ]);
       const claims = this.client.tokenParsed;
       this.displayName.set(typeof claims?.['name'] === 'string' ? claims['name'] : typeof claims?.['preferred_username'] === 'string' ? claims['preferred_username'] : 'Your workspace');
       this.username.set(typeof claims?.['preferred_username'] === 'string' ? claims['preferred_username'] : '');
-      this.client.onAuthLogout = () => this.state.set('anonymous');
+      this.client.onAuthLogout = () => {
+        this.displayName.set('Your workspace');
+        this.username.set('');
+        this.state.set('anonymous');
+      };
       this.state.set(authenticated ? 'authenticated' : 'anonymous');
     } catch {
       this.state.set('unavailable');
+    } finally {
+      clearTimeout(timer);
     }
   }
 }
