@@ -5,7 +5,7 @@ RUN npm ci --no-fund --no-audit
 COPY . .
 RUN npm test && npm run build
 
-FROM nginxinc/nginx-unprivileged:1.28-alpine
+FROM nginxinc/nginx-unprivileged:1.31-alpine
 USER root
 RUN apk add --no-cache jq
 COPY nginx/default.conf /etc/nginx/conf.d/default.conf
