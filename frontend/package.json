@@ -30,7 +30,7 @@
     "@angular-devkit/build-angular": "17.3.17",
     "@angular/cli": "17.3.17",
     "@angular/compiler": "17.3.12",
-    "@angular/compiler-cli": "17.3.12",
+    "@angular/compiler-cli": "22.2.5",
     "@angular/platform-browser-dynamic": "17.3.12",
     "@playwright/test": "1.65.0",
     "@types/node": "20.17.30",
