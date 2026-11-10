@@ -1,0 +1,48 @@
+<section class="page-intro home-intro" aria-labelledby="workspace-title">
+  <h1 id="workspace-title">Short links<span>.</span></h1>
+  <div class="hero-caption" data-enter><p>Create, manage, and share your URLs.</p><a routerLink="/insights">View link insights<app-icon name="arrowUp" /></a></div>
+</section>
+<div class="workspace-board" data-enter>
+  <app-create-link (created)="onCreated($event)" />
+  @if (page(); as current) {
+    <section class="metrics-grid" aria-label="Link overview">
+      <article class="glass metric-card"><span class="metric-icon"><app-icon name="link" /></span><div><span>Total links</span><strong>{{ current.totalElements }}</strong><p>All links in your account</p></div></article>
+      <article class="glass metric-card"><span class="metric-icon"><app-icon name="bolt" /></span><div><span>Active on this page</span><strong>{{ activeCount() }}</strong><p>Out of {{ current.content.length }} loaded links</p></div></article>
+      <article class="glass metric-card"><span class="metric-icon"><app-icon name="clock" /></span><div><span>With an expiration</span><strong>{{ expiringCount() }}</strong><p>Active links on this page</p></div></article>
+    </section>
+  }
+  <section class="glass links-panel" aria-labelledby="links-heading">
+    <div class="panel-title"><div><h2 id="links-heading">My links @if (page(); as current) { <span class="count-badge">{{ current.totalElements }}</span> }</h2><p>Copy a link, change its status, or view its clicks.</p></div><button type="button" class="btn btn-secondary btn-small" (click)="load()" [disabled]="loading() || !auth.authenticated()"><app-icon name="refresh" [class.spinning]="loading()" />Refresh</button></div>
+    <div class="table-toolbar"><div class="filter-tabs" role="group" aria-label="Filter links on this page">@for (option of filterOptions; track option.value) { <button type="button" [class.selected]="filter() === option.value" [attr.aria-pressed]="filter() === option.value" (click)="filter.set(option.value)">{{ option.label }}</button> }</div><label class="search-field"><app-icon name="search" /><input type="search" aria-label="Search links on this page" placeholder="Search this page" [value]="query()" (input)="search($event)" /></label></div>
+    @if (error(); as problem) { <div class="error-panel m-5" role="alert"><app-icon name="info" /><div><p>{{ problem.message }}</p>@if (problem.requestId) { <small>Reference: {{ problem.requestId }}</small> }</div><button class="text-button" type="button" (click)="load()">Try again</button></div> }
+    @if (loading()) {
+      <div class="table-skeleton" role="status" aria-label="Loading links">@for (row of [1,2,3]; track row) { <div><span></span><i></i><i></i></div> }<span class="sr-only">Loading links...</span></div>
+    } @else if (!auth.authenticated()) {
+      <div class="empty-state"><div class="empty-art"><app-icon name="link" /></div><h3>Sign in to view your links</h3><p>Create short URLs and manage them from this account.</p></div>
+    } @else if (!links().length && !error()) {
+      <div class="empty-state"><div class="empty-art"><app-icon name="plus" /></div><h3>No links yet</h3><p>Use the form above to create your first short link.</p></div>
+    } @else if (!filtered().length && !error()) {
+      <div class="empty-state compact"><app-icon name="search" /><h3>No matching links</h3><p>Search and filters apply to this page. Try another page or clear the filters.</p><button class="text-button" type="button" (click)="query.set(''); filter.set('all')">Clear filters</button></div>
+    } @else if (filtered().length) {
+      <div class="table-scroll"><table><thead><tr><th scope="col">Link / destination</th><th scope="col">Status</th><th scope="col">Created</th><th scope="col" class="text-right">Actions</th></tr></thead><tbody>
+        @for (link of filtered(); track link.id) {
+          <tr><td><div class="link-cell"><span class="destination-icon"><app-icon name="link" /></span><div><a class="short-link" [href]="link.shortUrl" target="_blank" rel="noopener noreferrer">{{ displayUrl(link.shortUrl) }}<app-icon name="arrowUp" /></a><a class="destination-url" [href]="link.longUrl" target="_blank" rel="noopener noreferrer" [title]="link.longUrl">{{ link.longUrl }}</a></div></div></td><td><span [class]="'link-status ' + status(link)"><span></span>{{ status(link) }}</span></td><td class="created-date">{{ link.createdAt | date:'MMM d, yyyy' }}</td><td><div class="row-actions"><button type="button" class="icon-button" (click)="copy(link)" [attr.aria-label]="'Copy ' + link.code" title="Copy link"><app-icon name="copy" /></button><button type="button" class="icon-button" (click)="openStats(link)" [attr.aria-label]="'Details and statistics for ' + link.code" title="Link details"><app-icon name="chart" /></button><button type="button" class="icon-button" (click)="toggle(link)" [disabled]="busyIds().has(link.id) || status(link) === 'expired'" [attr.aria-label]="(link.active ? 'Pause ' : 'Resume ') + link.code" [title]="status(link) === 'expired' ? 'Expired links cannot be resumed' : link.active ? 'Pause link' : 'Resume link'"><app-icon [name]="busyIds().has(link.id) ? 'clock' : link.active ? 'pause' : 'play'" /></button></div></td></tr>
+        }
+      </tbody></table></div>
+    }
+    @if (page(); as current) {
+      <div class="table-footer"><span>{{ current.totalElements === 0 ? 0 : current.page * current.size + 1 }}-{{ current.page * current.size + current.content.length }} of {{ current.totalElements }} links</span><div><button type="button" class="icon-button" aria-label="Previous page" [disabled]="current.page === 0 || loading()" (click)="load(current.page - 1)"><app-icon name="chevron" class="rotate-180" /></button><span>Page {{ current.page + 1 }} of {{ current.totalPages || 1 }}</span><button type="button" class="icon-button" aria-label="Next page" [disabled]="current.page + 1 >= current.totalPages || loading()" (click)="load(current.page + 1)"><app-icon name="chevron" /></button></div></div>
+    }
+  </section>
+</div>
+@if (selected(); as link) {
+  <dialog #linkDialog class="detail-panel glass" aria-labelledby="detail-title" (cancel)="closeStats()">
+    <div class="panel-title"><h2 id="detail-title">Link details</h2><button type="button" class="icon-button" aria-label="Close details" (click)="closeStats()"><app-icon name="close" /></button></div>
+    <span class="icon-tile"><app-icon name="chart" /></span><h3 class="detail-code">{{ link.code }}</h3><a class="detail-short-link" [href]="link.shortUrl" target="_blank" rel="noopener noreferrer">{{ link.shortUrl }}</a>
+    <div class="detail-stat"><span>Recorded clicks</span>@if (statsLoading()) { <p role="status">Loading...</p> } @else { @if (stats().get(link.id); as count) { <strong>{{ count.clickCount }}</strong> } }<p>Includes repeat visits and bots. Updates may take a moment.</p></div>
+    @if (statsError(); as problem) { <div class="error-panel" role="alert">{{ problem.message }}</div> }
+    <button class="btn btn-secondary w-full" type="button" (click)="refreshStats(link)" [disabled]="statsLoading()"><app-icon name="refresh" />Refresh statistics</button>
+    <dl class="detail-list"><dt>Destination</dt><dd>{{ link.longUrl }}</dd><dt>Status</dt><dd>{{ status(link) }}</dd><dt>Created</dt><dd>{{ link.createdAt | date:'medium' }}</dd><dt>Expires</dt><dd>{{ link.expiresAt ? (link.expiresAt | date:'medium') : 'No expiration' }}</dd></dl>
+    <button class="btn btn-primary w-full" type="button" (click)="copy(link)"><app-icon name="copy" />Copy short link</button>
+  </dialog>
+}

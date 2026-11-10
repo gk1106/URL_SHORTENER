@@ -1,0 +1,23 @@
+<section class="glass create-card" aria-labelledby="create-heading">
+  <div class="create-heading"><span class="icon-tile"><app-icon name="link" /></span><h2 id="create-heading">Create a short link</h2></div>
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <label for="destination" class="field-label">Destination URL</label>
+    <div class="url-input-wrap">
+      <app-icon name="globe" />
+      <input id="destination" type="url" formControlName="longUrl" placeholder="https://example.com/your-page" autocomplete="url" [attr.aria-invalid]="form.controls.longUrl.touched && form.controls.longUrl.invalid" aria-describedby="destination-help" />
+      <button class="btn btn-primary" type="submit" [disabled]="busy() || auth.state() === 'loading'"><span>{{ busy() ? 'Creating...' : auth.authenticated() ? 'Shorten link' : 'Sign in to shorten' }}</span><app-icon [name]="busy() ? 'clock' : 'arrow'" /></button>
+    </div>
+    <p id="destination-help" class="input-hint" [class.field-error]="form.controls.longUrl.touched && form.controls.longUrl.invalid">@if (form.controls.longUrl.touched && form.controls.longUrl.invalid) { Enter a full http:// or https:// URL without credentials, up to 2,048 characters. } @else { Use a full http:// or https:// URL. }</p>
+    <button type="button" class="advanced-toggle" (click)="advanced.set(!advanced())" [attr.aria-expanded]="advanced()" aria-controls="advanced-options"><app-icon name="settings" /> Custom alias & expiration <app-icon name="down" [class.rotate-180]="advanced()" /><span>Optional</span></button>
+    @if (advanced()) {
+      <div id="advanced-options" class="advanced-fields">
+        <div><label class="field-label" for="alias">Custom alias</label><input id="alias" class="text-input" formControlName="alias" placeholder="project-update" aria-describedby="alias-help" [attr.aria-invalid]="form.controls.alias.touched && form.controls.alias.invalid" /><p id="alias-help" class="input-hint" [class.field-error]="form.controls.alias.touched && form.controls.alias.invalid">4-32 letters, numbers, dashes, or underscores.</p></div>
+        <div><label class="field-label" for="expires">Expiration (your local time)</label><input id="expires" class="text-input" type="datetime-local" formControlName="expiresAt" aria-describedby="expires-help" [attr.aria-invalid]="form.controls.expiresAt.touched && form.controls.expiresAt.invalid" /><p id="expires-help" class="input-hint" [class.field-error]="form.controls.expiresAt.touched && form.controls.expiresAt.invalid">@if (form.controls.expiresAt.touched && form.controls.expiresAt.invalid) { Choose a future date and time. } @else { Leave empty for no expiration. }</p></div>
+      </div>
+    }
+    @if (error(); as problem) { <div class="error-panel mt-4" role="alert"><app-icon name="info" /><div><p>{{ problem.message }}</p>@if (problem.requestId) { <small>Reference: {{ problem.requestId }}</small> }@if (problem.retryAfter) { <small>Retry after {{ problem.retryAfter }} seconds.</small> }</div></div> }
+  </form>
+  @if (result(); as link) {
+    <div class="created-result" role="status"><span class="result-check"><app-icon name="check" /></span><div><span>Short link created</span><a [href]="link.shortUrl" target="_blank" rel="noopener noreferrer">{{ link.shortUrl }}</a></div><button type="button" class="btn btn-secondary" (click)="copyResult()"><app-icon name="copy" />Copy link</button><button type="button" class="icon-button" aria-label="Dismiss created link" (click)="result.set(null)"><app-icon name="close" /></button></div>
+  }
+</section>

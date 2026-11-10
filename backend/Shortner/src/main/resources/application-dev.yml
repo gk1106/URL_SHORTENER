@@ -1,0 +1,15 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:shortener;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+  flyway.locations: classpath:db/migration/h2
+  security.oauth2.resourceserver.jwt:
+    issuer-uri: http://localhost:8180/realms/shortener
+    jwk-set-uri: http://localhost:8180/realms/shortener/protocol/openid-connect/certs
+app:
+  base-url: http://localhost:8080
+  cors.allowed-origins: http://localhost:3000,http://localhost:5173
+  cache.enabled: false
+  rate-limit.enabled: false
+management.health.redis.enabled: false

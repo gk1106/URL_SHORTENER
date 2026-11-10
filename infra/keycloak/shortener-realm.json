@@ -1,0 +1,35 @@
+{
+  "realm": "shortener",
+  "enabled": true,
+  "registrationAllowed": false,
+  "bruteForceProtected": true,
+  "sslRequired": "external",
+  "clients": [
+    {
+      "clientId": "shortener-dev",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["http://localhost:3000/*", "http://localhost:5173/*"],
+      "webOrigins": ["http://localhost:3000", "http://localhost:5173"],
+      "attributes": {
+        "oauth2.device.authorization.grant.enabled": "true",
+        "pkce.code.challenge.method": "S256"
+      },
+      "protocolMappers": [
+        {
+          "name": "shortener-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "shortener-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ]
+    }
+  ]
+}

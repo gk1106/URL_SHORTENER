@@ -1,0 +1,39 @@
+<a class="skip-link" href="#main-content">Skip to content</a>
+<div class="app-shell">
+  <header class="topbar" data-enter>
+    <a routerLink="/" class="brand" aria-label="Shortly home"><span class="brand-symbol"><app-icon name="link" /></span>shortly<span class="brand-period">.</span></a>
+    <nav class="desktop-nav" aria-label="Main navigation">
+      <a routerLink="/" routerLinkActive="nav-active" [routerLinkActiveOptions]="{ exact: true }">My links</a>
+      <a routerLink="/insights" routerLinkActive="nav-active">Insights</a>
+      <a routerLink="/guide" routerLinkActive="nav-active">Help</a>
+    </nav>
+    <div class="account-area">
+      @if (auth.authenticated()) {
+        <a routerLink="/settings" class="user-avatar" [attr.aria-label]="'Account: ' + auth.displayName()" [title]="auth.displayName()">{{ auth.initials() }}</a>
+        <button class="icon-button" type="button" aria-label="Sign out" title="Sign out" [disabled]="authBusy()" (click)="signOut()"><app-icon name="logout" /></button>
+      } @else {
+        <button class="btn btn-secondary" type="button" [disabled]="authBusy() || auth.state() === 'loading'" (click)="signIn()">{{ auth.state() === 'loading' ? 'Connecting...' : authBusy() ? 'Opening sign-in...' : 'Sign in' }}<app-icon name="arrow" /></button>
+      }
+      <a routerLink="/settings" class="icon-button settings-button" aria-label="Settings"><app-icon name="settings" /></a>
+      <button class="icon-button mobile-menu-button" type="button" aria-label="Toggle navigation" [attr.aria-expanded]="mobileMenu()" aria-controls="mobile-navigation" (click)="mobileMenu.set(!mobileMenu())"><app-icon [name]="mobileMenu() ? 'close' : 'menu'" /></button>
+    </div>
+  </header>
+  @if (mobileMenu()) {
+    <nav id="mobile-navigation" class="mobile-navigation glass" aria-label="Mobile navigation">
+      <a routerLink="/" (click)="mobileMenu.set(false)">My links<app-icon name="link" /></a>
+      <a routerLink="/insights" (click)="mobileMenu.set(false)">Insights<app-icon name="chart" /></a>
+      <a routerLink="/settings" (click)="mobileMenu.set(false)">Settings<app-icon name="settings" /></a>
+      <a routerLink="/guide" (click)="mobileMenu.set(false)">Help<app-icon name="help" /></a>
+    </nav>
+  }
+  @if (auth.state() === 'unavailable') {
+    <div class="connection-banner" role="status"><app-icon name="info" /><span>Sign-in is unavailable. Reconnect to try again.</span><button class="text-button" type="button" (click)="auth.retry()">Reconnect</button></div>
+  }
+  <main id="main-content" class="workspace-main" tabindex="-1"><router-outlet /></main>
+  <footer class="workspace-footer"><a routerLink="/" class="footer-brand">shortly.</a><span>&copy; {{ currentYear }} Shortly</span><a routerLink="/guide">Help & getting started<app-icon name="arrowUp" /></a></footer>
+</div>
+<div class="toast-stack" aria-live="polite" aria-atomic="false">
+  @for (message of toast.messages(); track message.id) {
+    <div class="toast" [class.toast-error]="message.kind === 'error'" [attr.role]="message.kind === 'error' ? 'alert' : 'status'"><span class="toast-icon"><app-icon [name]="message.kind === 'error' ? 'info' : 'check'" /></span><p>{{ message.message }}</p><button type="button" class="icon-button" aria-label="Dismiss notification" (click)="toast.dismiss(message.id)"><app-icon name="close" /></button></div>
+  }
+</div>
