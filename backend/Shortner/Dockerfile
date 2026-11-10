@@ -5,7 +5,7 @@ RUN mvn -B dependency:go-offline
 COPY src src
 RUN mvn -B verify
 
-FROM eclipse-temurin:17-jre-jammy
+FROM eclipse-temurin:25-jre-jammy
 RUN groupadd --system shortener && useradd --system --gid shortener --home-dir /app shortener
 WORKDIR /app
 COPY --from=build --chown=shortener:shortener /workspace/target/shortener-0.0.1-SNAPSHOT.jar app.jar
