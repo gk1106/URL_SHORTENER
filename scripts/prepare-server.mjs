@@ -5,7 +5,7 @@ import { resolve } from 'node:path';
 const root = fileURLToPath(new URL('../', import.meta.url));
 
 export function serverRealm(base, env) {
-  const required = ['PUBLIC_ORIGIN', 'ACME_EMAIL', 'KEYCLOAK_ADMIN_PASSWORD', 'KEYCLOAK_DB_PASSWORD', 'ORACLE_PASSWORD', 'DB_PASSWORD', 'REDIS_PASSWORD', 'SMTP_HOST', 'SMTP_PORT', 'SMTP_FROM', 'SMTP_USERNAME', 'SMTP_PASSWORD'];
+  const required = ['PUBLIC_ORIGIN', 'KEYCLOAK_ADMIN_PASSWORD', 'KEYCLOAK_DB_PASSWORD', 'DB_PASSWORD', 'REDIS_PASSWORD', 'SMTP_HOST', 'SMTP_PORT', 'SMTP_FROM', 'SMTP_USERNAME', 'SMTP_PASSWORD'];
   for (const name of required) {
     if (!env[name] || /replace-with|your-provider\.example/i.test(env[name])) throw new Error(`Set ${name} in .env.server before preparing the server configuration.`);
   }

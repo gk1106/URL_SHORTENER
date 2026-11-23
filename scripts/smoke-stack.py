@@ -92,7 +92,7 @@ def main():
             if status == 429:
                 break
         assert status == 429, 'Distributed rate limiting did not enforce quota'
-        print('PASS: Oracle persistence, real Keycloak JWTs, ownership, Redis lookup, redirects, HEAD, click counts, disable, rate limits.')
+        print('PASS: PostgreSQL persistence, real Keycloak JWTs, ownership, Redis lookup, redirects, HEAD, click counts, disable, rate limits.')
     finally:
         admin = admin_token()
         for location in created:

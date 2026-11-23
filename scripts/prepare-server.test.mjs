@@ -6,7 +6,7 @@ const base = { realm: 'shortener', clients: [{ clientId: 'shortener-dev', redire
 const env = {
   PUBLIC_ORIGIN: 'https://link.gkbuilds.in', ACME_EMAIL: 'test@example.invalid',
   KEYCLOAK_ADMIN_PASSWORD: 'test-admin-secret', KEYCLOAK_DB_PASSWORD: 'test-auth-db-secret',
-  ORACLE_PASSWORD: 'test-oracle-secret', DB_PASSWORD: 'test-app-db-secret', REDIS_PASSWORD: 'test-cache-secret',
+  DB_PASSWORD: 'test-app-db-secret', REDIS_PASSWORD: 'test-cache-secret',
   SMTP_HOST: 'smtp.example.invalid', SMTP_PORT: '587', SMTP_FROM: 'test@example.invalid',
   SMTP_USERNAME: 'test-user', SMTP_PASSWORD: 'test-mail-secret', SMTP_STARTTLS: 'true', SMTP_SSL: 'false'
 };

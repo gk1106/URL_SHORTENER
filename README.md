@@ -2,7 +2,7 @@
 
 Guests can create their first 30 links per browser without an account. After that, sign in or register and verify your email to continue. Guest links transfer to the account after sign-in. Local verification/reset emails are captured at http://localhost:8025. See [server authentication setup](SERVER_SETUP.md) for `link.gkbuilds.in`, HTTPS routing, SMTP, and the separate server stack.
 
-Java 17 / Spring Boot 4.1.2 backend with Oracle, Flyway, Spring Security OIDC bearer authentication, Redis, Log4j2, and bounded asynchronous click counting. The [Angular 17 frontend](frontend/README.md) includes a glossy Tailwind CSS workspace, secure sign-in, link management, and click statistics.
+Java 17 / Spring Boot 4.1.2 backend with PostgreSQL, Flyway, Spring Security OIDC bearer authentication, Redis, Log4j2, and bounded asynchronous click counting. The [Angular 17 frontend](frontend/README.md) includes a glossy Tailwind CSS workspace, secure sign-in, link management, and click statistics.
 
 ## Code organization
 
@@ -78,7 +78,7 @@ This builds the containers, waits for the API, website, and identity provider, s
 
 The lower-level equivalent is `docker compose --profile full up --build -d`, followed (once services are ready) by `node scripts/setup-local-auth.mjs --create-user`. The setup command also updates existing Keycloak volumes, because changing the realm import JSON alone does not update an already-imported realm. The generated account is for local application use and is not a Keycloak administrator.
 
-This starts Oracle Free, password-protected Redis, Keycloak, and the backend at http://localhost:8090 (`APP_PORT` in `.env` overrides the port). Use port 8090 instead of 8080 in the API examples for this stack. Oracle stays on the private Docker network. Oracle's first start can take several minutes. Volumes persist database/authentication data; later `.env` changes do not change existing database or Keycloak passwords. `docker compose --profile full down` stops the stack and retains data.
+This starts PostgreSQL 17, password-protected Redis, Keycloak, and the backend at http://localhost:8090 (`APP_PORT` in `.env` overrides the port). Use port 8090 instead of 8080 in the API examples for this stack. PostgreSQL stays on the private Docker network. Volumes persist database/authentication data; later `.env` changes do not change existing database or Keycloak passwords. `docker compose --profile full down` stops the stack and retains data.
 
 Run `python scripts/smoke-stack.py` from the root to check the live stack. It creates and removes temporary Keycloak clients, creates one disabled test link, and checks authentication, ownership, redirects, click counts, cache consistency, and rate limits. It reads local `.env` credentials without printing them.
 
@@ -93,7 +93,9 @@ npm run test:e2e
 
 These tests cover real PKCE login, reload/session recovery, link creation and click recording, pause/resume, owner isolation, logout, invalid credentials, and desktop/mobile rendering. Test accounts are removed afterward; test links are paused. Browser traces, video, and automatic screenshots are disabled so authentication secrets are not retained. Signed-out layout screenshots contain no account data.
 
-Oracle's `NUMBER(1)` active flag is explicitly mapped through Hibernate's preferred Boolean JDBC type `BIT`, preserving the existing Flyway migration and avoiding Oracle 23's native-Boolean schema mismatch.
+PostgreSQL migrations use native Boolean values, `BIGINT` counters, and timestamps with time zone. Hibernate validates the schema after Flyway applies migrations. The in-memory H2 development profile remains available.
+
+The PostgreSQL stack creates a new `postgres-data` volume. It does not copy existing Oracle links or guest allowances. If you used the earlier Oracle stack, stop its Oracle service before updating and retain its volume for backup/export; historical Oracle migrations remain in the repository for reference. No existing database volumes are deleted by this change.
 
 ## API
 
@@ -124,7 +126,7 @@ Errors use `application/problem+json` with a request ID. Statuses: 400 invalid i
 
 ## Configuration and deployment
 
-Default configuration requires `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `OIDC_ISSUER_URI`, `OIDC_JWK_SET_URI`, `APP_BASE_URL`, and `CORS_ALLOWED_ORIGINS`. Oracle migrations run automatically and Hibernate validates the schema. Use a dedicated database account; split migration credentials from runtime credentials for production deployments.
+Default configuration requires `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `OIDC_ISSUER_URI`, `OIDC_JWK_SET_URI`, `APP_BASE_URL`, and `CORS_ALLOWED_ORIGINS`. Use a PostgreSQL JDBC URL such as `jdbc:postgresql://db:5432/shortener`. PostgreSQL migrations run automatically and Hibernate validates the schema. Use a dedicated database account; split migration credentials from runtime credentials for production deployments.
 
 Optional Redis settings: `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`, `REDIS_SSL_ENABLED`. Rate limits default to 60 management requests per user per minute and 300 redirects per source IP per minute. Redis increments/expiry are atomic. Rate limiting fails closed with 503 if Redis is unavailable. Redirect caching falls back to the database on Redis errors. Cache entries map codes to IDs; authoritative database checks preserve immediate disable/expiration semantics. This cache does not eliminate the database read.
 
@@ -142,6 +144,8 @@ $env:JAVA_HOME = 'C:\Program Files\Java\jdk-17'
 ./mvnw.cmd -B clean verify
 ```
 
-Tests cover persistence/migrations on H2, redirects, ownership, validation, expiration/disabling, collision races, concurrent atomic clicks, token claim validation, and rate limiter decisions. Docker/Oracle/Redis/Keycloak end-to-end checks require a running local stack and are distinct from H2 tests. CI runs `verify` on Java 17. The Docker build also runs verification and uses a nonroot runtime user.
+Tests cover persistence/migrations, redirects, ownership, validation, expiration/disabling, collision races, concurrent atomic clicks, token claim validation, and rate limiter decisions. CI runs `verify` on Java 17 against both H2 and a real PostgreSQL 17 service. Docker/PostgreSQL/Redis/Keycloak end-to-end checks require a running local stack and are distinct from these tests. The Docker build also runs verification and uses a nonroot runtime user.
+
+To run the same suite against a disposable PostgreSQL database, set `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`, and `SPRING_FLYWAY_LOCATIONS=classpath:db/migration/postgresql` before running Maven. Use a test database, because the suite persists test records. The tests retain the `dev` profile's mock authentication and disabled Redis settings.
 
 The frontend, malware reputation checks, durable analytics, and scheduled data retention are outside this backend implementation. Load and operational testing against the target deployment remain necessary before production rollout.
